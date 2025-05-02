@@ -4,107 +4,102 @@ import pickle
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# Set page config
+# Giving page a logo title and defining a layout
 st.set_page_config(
     page_title="Electric Vehicle Accident Predictor",
     page_icon="🚗",
     layout="wide"
 )
 
-# Add custom CSS
+# Adding custom CSS
 st.markdown("""
     <style>
     .main {
-        padding: 2rem;
+        padding: 3rem;
     }
     .stButton>button {
         width: 100%;
-        margin-top: 1rem;
+        margin-top: 2rem;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Create tabs
-tab1, tab2 = st.tabs(["Accident Predictor", "EV Accident Heatmap"])
+# Making tabs
+tab1, tab2 = st.tabs(["Accident Predictor", "EV's Accident Heatmap"])
 
 with tab1:
-    # Title and description
+    # Title and description for the application
     st.title("🚗 Electric Vehicle Accident Predictor")
-    st.markdown("""
-    This application predicts the likelihood of casualties in electric vehicle accidents based on various factors.
-    The model has been trained on historical accident data from New York State.
-    """)
+    st.markdown("""This application predicts the probability of casualties in electric vehicle accidents based on various factors mentioned in the lower end of this page.
+    The model has been trained on dataset of accidents from New York City.""")
 
-    # Function to validate New York State ZIP codes
+    # Function to validate New York City ZIP codes
     def is_valid_ny_zipcode(zipcode):
-        # New York State ZIP code ranges
-        ny_ranges = [
+        # New York City ZIP code ranges
+        NewYorkRanges = [
             (10001, 14925),  # New York City and surrounding areas
-            (12007, 12887),  # Capital Region
-            (13001, 13901),  # Central New York
-            (14001, 14788),  # Western New York
-            (14801, 14925)   # Southern Tier
+            (14925, 15000)  # Capital Region
         ]
         
         try:
-            zip_int = int(zipcode)
-            return any(lower <= zip_int <= upper for lower, upper in ny_ranges)
+            ZipCodeInt = int(zipcode)
+            return any(lower <= ZipCodeInt <= upper for lower, upper in NewYorkRanges)
         except ValueError:
             return False
 
-    def get_region(zipcode):
+    def GetRegion(zipcode):
         try:
-            zip_int = int(zipcode)
-            if 10001 <= zip_int <= 14925:
-                if 10001 <= zip_int <= 10282:
+            ZipCodeInt = int(zipcode)
+            if 10001 <= ZipCodeInt <= 14925:
+                if 10001 <= ZipCodeInt <= 10282:
                     return "Manhattan, NYC"
-                elif 10301 <= zip_int <= 10314:
+                elif 10301 <= ZipCodeInt <= 10314:
                     return "Staten Island, NYC"
-                elif 10451 <= zip_int <= 10475:
+                elif 10451 <= ZipCodeInt <= 10475:
                     return "Bronx, NYC"
-                elif 11001 <= zip_int <= 11697:
+                elif 11001 <= ZipCodeInt <= 11697:
                     return "Queens, NYC"
-                elif 11201 <= zip_int <= 11256:
+                elif 11201 <= ZipCodeInt <= 11256:
                     return "Brooklyn, NYC"
                 else:
                     return "New York City Area"
-            elif 12007 <= zip_int <= 12887:
+            elif 12007 <= ZipCodeInt <= 12887:
                 return "Capital Region"
-            elif 13001 <= zip_int <= 13901:
+            elif 13001 <= ZipCodeInt <= 13901:
                 return "Central New York"
-            elif 14001 <= zip_int <= 14788:
+            elif 14001 <= ZipCodeInt <= 14788:
                 return "Western New York"
-            elif 14801 <= zip_int <= 14925:
+            elif 14801 <= ZipCodeInt <= 14925:
                 return "Southern Tier"
             return "Unknown"
         except ValueError:
             return "Invalid"
 
-    # Load the model
+    # Loading the model
     @st.cache_resource
-    def load_model():
+    def LoadingModel():
         with open('LR_model_f1_0.6133.pkl', 'rb') as file:
             model = pickle.load(file)
         return model
 
     try:
-        model = load_model()
+        model = LoadingModel()
         st.success("Model loaded successfully!")
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
         st.stop()
 
-    # Create columns for better layout
+    # Createing the columns for the layout
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Temporal Information")
+        st.subheader("Information")
         
-        # Date and time input
+        # For input
         date_time = st.date_input("Select Date", datetime.now())
         hour = st.slider("Hour of Day", 0, 23, 12)
         
-        # Calculate temporal features
+        # Calculate time related features
         month = date_time.month
         day = date_time.day
         day_of_week = date_time.weekday()  # 0=Monday, 6=Sunday
@@ -136,45 +131,45 @@ with tab1:
         )
         
         # ZIP code input
-        zip_code = st.text_input("ZIP Code", "10001")
-        if not zip_code.isdigit() or len(zip_code) != 5:
+        ZipCodeText = st.text_input("Zip Code", "10001")
+        if not ZipCodeText.isdigit() or len(ZipCodeText) != 5:
             st.warning("Please enter a valid 5-digit ZIP code")
-        elif not is_valid_ny_zipcode(zip_code):
-            st.error("This ZIP code is not in New York State. Please enter a valid NY ZIP code.")
+        elif not is_valid_ny_zipcode(ZipCodeText):
+            st.error("This ZIP code is not in New York City. Please enter a valid NY ZIP code.")
         else:
-            region = get_region(zip_code)
-            st.success(f"Valid New York State ZIP code.")
+            region = GetRegion(ZipCodeText)
+            st.success(f"Valid New York City ZIP code.")
 
-    # Predict button
+    # Making the prediction button
     if st.button("Predict Accident Severity"):
         try:
-            # Validate ZIP code before proceeding
-            if not is_valid_ny_zipcode(zip_code):
-                st.error("Cannot make prediction: Please enter a valid New York State ZIP code.")
+            # Check if the zip code is in new york
+            if not is_valid_ny_zipcode(ZipCodeText):
+                st.error("Cannot make prediction: Please enter a valid New York City ZIP code.")
                 st.stop()
                 
-            # Create input data
+            # Creating input data
             input_data = pd.DataFrame({
                 'Month': [month],
                 'Day': [day],
                 'Hour': [hour],
                 'DayOfWeek': [day_of_week],
                 'VEHICLE TYPE CODE 2': [vehicle_type],
-                'ZIP CODE': [int(zip_code)],
+                'ZIP CODE': [int(ZipCodeText)],
                 'CONTRIBUTING FACTOR VEHICLE 1': [contributing_factor],
                 'IsRushHour': [is_rush_hour],
                 'IsWeekend': [is_weekend],
                 'IsNightTime': [is_night_time]
             })
             
-            # Make prediction
+            # makeing predictions
             prediction = model.predict(input_data)
-            prediction_proba = model.predict_proba(input_data)[0]
+            PredictionProbability = model.predict_proba(input_data)[0]
             
-            # Display results
+            # Displaying results
             st.header("Prediction Results")
             
-            # Create columns for the results
+            # Creating new columns for the results
             res_col1, res_col2 = st.columns(2)
             
             with res_col1:
@@ -186,10 +181,10 @@ with tab1:
             with res_col2:
                 st.metric(
                     "Probability",
-                    f"{prediction_proba[1]:.2%}"
+                    f"{PredictionProbability[1]:.2%}"
                 )
             
-            # Additional information
+            # Calculating risk related information
             st.markdown("### Risk Factors")
             risk_factors = []
             if is_rush_hour:
@@ -207,41 +202,36 @@ with tab1:
         except Exception as e:
             st.error(f"Error making prediction: {str(e)}")
 
-    # Add footer with information
+    # Adding information related to models
     st.markdown("---")
     st.markdown("""
     ### About the Model
-    This model was trained on historical accident data from New York State involving electric vehicles.
+    This model was trained on old accident data from New York City involving electric vehicles.
     The prediction is based on various factors including:
-    - Temporal features (time of day, day of week, etc.)
+    - time of day, day of week, etc.
     - Vehicle type
     - Contributing factors
-    - Location (ZIP code)
+    - ZIP code
 
-    The model's performance metric (F1 score) is 0.6133.
+    The model's F1 score is 0.6133.
 
-    Note: This model is only valid for accidents within New York State ZIP codes.
-    Valid NY State ZIP code ranges:
-    - New York City and surrounding areas: 10001-14925
-    - Capital Region: 12007-12887
-    - Central New York: 13001-13901
-    - Western New York: 14001-14788
-    - Southern Tier: 14801-14925
-    """)
+    Note: This model is only valid for accidents within New York City ZIP codes.
+    Valid NY City ZIP code ranges:
+    - New York City and surrounding areas: 10001-14925""")
 
 with tab2:
     st.title("🗺️ EV Accident Heatmap")
     st.markdown("""
-    This heatmap shows the distribution of electric vehicle accidents across New York State.
-    The intensity of the color indicates the frequency of accidents in each area.
+    This heatmap shows the distribution of electric vehicle accidents across New York City.
+    The intensity of the color indicates the frequency of accidents in each area. Here red means that there are more accidents, and green means less number of accidents.
     """)
     
-    # Read and display the heatmap
+    # Reading and display the heatmap
     try:
         with open('ev_heatmap.html', 'r', encoding='utf-8') as f:
             html_content = f.read()
         
-        # Display the heatmap
+        # Displaying the heatmap
         components.html(html_content, height=1200)
         
         
